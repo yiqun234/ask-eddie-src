@@ -1,0 +1,49 @@
+{
+  "name": "next-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "cd ../.. && yarn build && cd apps/next && next build",
+    "start": "next start",
+    "serve": "NODE_ENV=production next start --port 8151",
+    "lint": "next lint",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@radix-ui/react-avatar": "^1.1.10",
+    "@radix-ui/react-dialog": "^1.1.14",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@tamagui/config": "^1.129.1",
+    "@tamagui/next-theme": "^1.129.1",
+    "app": "0.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "geist": "^1.4.2",
+    "lucide-react": "^0.523.0",
+    "next": "14.2.14",
+    "raf": "^3.4.1",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-native": "0.79.2",
+    "react-native-web": "^0.20.0",
+    "tailwind-merge": "^3.3.1",
+    "tamagui": "^1.129.1",
+    "vercel": "latest"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.10",
+    "@tamagui/next-plugin": "^1.129.1",
+    "@types/node": "^24.0.4",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "eslint-config-next": "^15.3.4",
+    "next-compose-plugins": "^2.2.1",
+    "next-transpile-modules": "^10.0.1",
+    "tailwindcss": "^4.1.10",
+    "tree-kill": "^1.2.2",
+    "tw-animate-css": "^1.3.4",
+    "typescript": "^5.8.3",
+    "vitest": "^2.1.1"
+  }
+}
