@@ -38,9 +38,10 @@ export default function RecTrackerScreen() {
       <YStack f={1} p="$4" space="$4" mt="$4">
         <H1>RecTracker</H1>
         <Separator />
-        {mockStudents.map((student) => (
-            // In a real app, the key should be a unique ID from the data
-            <StudentCard key={student.name} {...student} />
+        {mockStudents
+            .filter(student => !!student)
+            .map((student) => (
+                <StudentCard key={student.name} {...student} />
         ))}
       </YStack>
     </ScrollView>

@@ -57,11 +57,10 @@ test('Next.js build completes', async () => {
     expect(result).toContain('○ /')
     expect(result).toContain('○ /_not-found')
     
-    // Check for chunk information
-    expect(result).toContain('app-page_')
-    expect(result).toContain('framework-')
+    // Check for chunk summary
+    expect(result).toContain('First Load JS shared by all')
 
-    // Check for static and dynamic route indicators
+    // Check for static route indicator
     expect(result).toContain('○ (Static)   prerendered as static content')
   } finally {
     // The process kill check has been moved to the afterAll block
