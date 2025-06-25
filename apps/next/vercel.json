@@ -1,3 +1,5 @@
 {
-  "installCommand": "yarn set version 4.9 && yarn install"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd ../.. && yarn install",
+  "buildCommand": "cd ../.. && turbo run build --filter=next-app"
 }
