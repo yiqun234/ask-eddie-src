@@ -35,6 +35,7 @@
   "dependencies": {
     "@babel/runtime": "^7.24.6",
     "@tamagui/cli": "^1.129.1",
+    "@tamagui/lucide-icons": "^1.129.2",
     "check-dependency-version-consistency": "^4.1.0",
     "eslint": "^9.3.0",
     "geist": "^1.4.2",
