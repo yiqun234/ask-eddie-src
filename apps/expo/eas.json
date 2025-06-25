@@ -10,6 +10,9 @@
         "image": "latest"
       }
     },
+    "preview": {
+      "distribution": "internal"
+    },
     "production": {
       "distribution": "store",
       "android": {
