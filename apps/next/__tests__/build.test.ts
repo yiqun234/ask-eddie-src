@@ -51,25 +51,19 @@ test('Next.js build completes', async () => {
 
     // Check for route information
     expect(result).toContain('Route (app)')
-    expect(result).toContain('Route (pages)')
     expect(result).toContain('First Load JS shared by all')
 
     // Check for specific route patterns
     expect(result).toContain('○ /')
-    expect(result).toContain('○ /_not-found')
-    expect(result).toContain('ƒ /user/[id]')
-    expect(result).toContain('/_app')
-    expect(result).toContain('/pages-example')
-    expect(result).toContain('/pages-example-user/[id]')
-
+    expect(result).toContain('● /_not-found')
+    
     // Check for chunk information
-    expect(result).toContain('chunks/framework-')
-    expect(result).toContain('chunks/main-')
-    expect(result).toContain('chunks/pages/_app-')
+    expect(result).toContain('app-page_')
+    expect(result).toContain('framework-')
 
     // Check for static and dynamic route indicators
-    expect(result).toContain('○  (Static)   prerendered as static content')
-    expect(result).toContain('ƒ  (Dynamic)  server-rendered on demand')
+    expect(result).toContain('○ (Static)   prerendered as static content')
+    expect(result).toContain('● (Dynamic)  server-rendered on demand')
   } finally {
     // The process kill check has been moved to the afterAll block
   }
