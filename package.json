@@ -11,7 +11,7 @@
     "ios": "cd apps/expo && yarn ios",
     "android": "cd apps/expo && yarn android",
     "watch": "ultra -r --no-pretty --concurrency 400 watch",
-    "vercel:install": "yarn set version 3.5 && yarn install",
+    "vercel:install": "yarn set version 4.9 && yarn install",
     "web": "yarn build && cd apps/next && yarn next",
     "web:extract": "DISABLE_EXTRACTION=false yarn workspace next-app dev",
     "web:prod": "yarn workspace next-app build",
