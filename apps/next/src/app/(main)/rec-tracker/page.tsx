@@ -17,6 +17,7 @@ import {
   ArrowUp,
   ArrowDown,
   CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import React from "react";
 import {
@@ -26,79 +27,36 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import type { Student, Application } from "@/app/api/rec-tracker/route";
 
-const studentsData = [
-  {
-    id: "1",
-    name: "Angela Zhao",
-    colleges: 4,
-    deadline: "Nov 1, 2025",
-    daysLeft: null,
-    status: "Finalized",
-    details: [],
-  },
-  {
-    id: "2",
-    name: "Lisa Chen",
-    colleges: 3,
-    deadline: "Nov 1, 2025",
-    daysLeft: 1,
-    status: "Not Started",
-    details: [
-      {
-        college: "Columbia University",
-        appType: "ED",
-        deadline: "Nov 1, 2025",
-        daysLeft: 1,
-        recRequired: true,
-      },
-      {
-        college: "NYU",
-        appType: "RD",
-        deadline: "Jan 5, 2026",
-        daysLeft: 5,
-        recRequired: true,
-      },
-      {
-        college: "UC Davis",
-        appType: "RD",
-        deadline: "Nov 30, 2025",
-        daysLeft: null,
-        recRequired: false,
-      },
-    ],
-  },
-  {
-    id: "3",
-    name: "Tom Wu",
-    colleges: 3,
-    deadline: "Nov 15, 2025",
-    daysLeft: 4,
-    status: "In Progress",
-    details: [],
-  },
-  {
-    id: "4",
-    name: "Noah Chen",
-    colleges: 2,
-    deadline: "Nov 10, 2025",
-    daysLeft: 52,
-    status: "Not Started",
-    details: [],
-  },
-];
-
-type Student = (typeof studentsData)[0];
-type StudentDetail = Student["details"][0];
-type SortableKey = keyof Omit<Student, "id" | "details" | "status">;
-type SubSortableKey = keyof Omit<StudentDetail, "recRequired" | "appType" | "college">;
+type SortableKey = keyof Omit<Student, "id" | "applications" | "status">;
+type SubSortableKey = keyof Omit<Application, "id" | "recRequired" | "program" | "collegeName" | "status">;
 
 
 export default function RecTrackerPage() {
-  const [students] = React.useState(studentsData);
+  const [students, setStudents] = React.useState<Student[]>([]);
+  const [isLoading, setIsLoading] = React.useState(true);
   const [expandedRows, setExpandedRows] = React.useState<Record<string, boolean>>({});
   const [sortConfig, setSortConfig] = React.useState<{ key: SortableKey; direction: "asc" | "desc" } | null>(null);
   const [subSortConfig, setSubSortConfig] = React.useState<{ key: SubSortableKey; direction: "asc" | "desc"} | null>(null);
+
+  React.useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/rec-tracker');
+        const data = await response.json();
+        setStudents(data);
+      } catch (error) {
+        console.error("Failed to fetch students", error);
+        // Handle error state if needed
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const toggleRow = (id: string) => {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -137,7 +95,7 @@ export default function RecTrackerPage() {
         if (aVal === null) return 1;
         if (bVal === null) return -1;
         
-        if (sortConfig.key === 'deadline') {
+        if (sortConfig.key === 'earliestDeadline') {
             const dateA = new Date(aVal as string).getTime();
             const dateB = new Date(bVal as string).getTime();
             if (dateA < dateB) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -206,8 +164,8 @@ export default function RecTrackerPage() {
                     </Button>
                   </TableHead>
                   <TableHead className="px-3">
-                    <Button variant="ghost" className="p-0 hover:bg-transparent font-semibold text-slate-700" onClick={() => requestSort('deadline')}>
-                      Earliest Deadline {getSortIcon('deadline')}
+                    <Button variant="ghost" className="p-0 hover:bg-transparent font-semibold text-slate-700" onClick={() => requestSort('earliestDeadline')}>
+                      Earliest Deadline {getSortIcon('earliestDeadline')}
                     </Button>
                   </TableHead>
                   <TableHead className="px-3">
@@ -220,104 +178,127 @@ export default function RecTrackerPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedStudents.map((student) => (
-                  <React.Fragment key={student.id}>
-                    <TableRow className="border-b h-[63px]">
-                      <TableCell className="px-3">
-                        <Button variant="ghost" size="icon" onClick={() => toggleRow(student.id)}>
-                          {expandedRows[student.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                        </Button>
-                      </TableCell>
-                      <TableCell className="font-medium px-3">{student.name}</TableCell>
-                      <TableCell className="px-3">{student.colleges}</TableCell>
-                      <TableCell className="px-3">{student.deadline}</TableCell>
-                      <TableCell className={`${getDaysLeftColor(student.daysLeft)} px-3`}>
-                        {student.daysLeft ?? "-"}
-                      </TableCell>
-                      <TableCell className="px-3">{student.status}</TableCell>
-                      <TableCell className="px-3">
-                        <Button variant="ghost" size="icon">
-                          {student.status === "Finalized" ? <Eye size={16} /> : <Edit size={16} />}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                    {expandedRows[student.id] && (
-                      <TableRow className="bg-[#F1F4F9] hover:bg-[#F1F4F9]">
-                        <TableCell colSpan={7} className="p-0">
-                          {student.details.length > 0 ? (
-                            (() => {
-                              const sortedDetails = [...student.details].sort((a, b) => {
-                                if (!subSortConfig) return 0;
-                                const aVal = a[subSortConfig.key];
-                                const bVal = b[subSortConfig.key];
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center">
+                      <div className="flex justify-center items-center">
+                        <Loader2 className="mr-2 h-8 w-8 animate-spin" />
+                        <span className="text-lg">Loading students...</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  sortedStudents.map((student) => (
+                    <React.Fragment key={student.id}>
+                      <TableRow className="border-b h-[63px]">
+                        <TableCell className="px-3">
+                          <Button variant="ghost" size="icon" onClick={() => toggleRow(student.id)}>
+                            {expandedRows[student.id] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                          </Button>
+                        </TableCell>
+                        <TableCell className="font-medium px-3">{student.name}</TableCell>
+                        <TableCell className="px-3">{student.colleges}</TableCell>
+                        <TableCell className="px-3">
+                          {new Date(student.earliestDeadline).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </TableCell>
+                        <TableCell className={`${getDaysLeftColor(student.daysLeft)} px-3`}>
+                          {student.daysLeft ?? "-"}
+                        </TableCell>
+                        <TableCell className="px-3">{student.status}</TableCell>
+                        <TableCell className="px-3">
+                          <Button variant="ghost" size="icon">
+                            {student.status === "Finalized" ? <Eye size={16} /> : <Edit size={16} />}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                      {expandedRows[student.id] && (
+                        <TableRow className="bg-[#F1F4F9] hover:bg-[#F1F4F9]">
+                          <TableCell colSpan={7} className="p-0">
+                            {student.applications.length > 0 ? (
+                              (() => {
+                                const sortedDetails = [...student.applications].sort((a, b) => {
+                                  if (!subSortConfig) return 0;
+                                  
+                                  const aVal = a[subSortConfig.key];
+                                  const bVal = b[subSortConfig.key];
 
-                                if (aVal === null) return 1;
-                                if (bVal === null) return -1;
+                                  if (subSortConfig.key === 'deadline') {
+                                      const dateA = new Date(aVal as string).getTime();
+                                      const dateB = new Date(bVal as string).getTime();
+                                      if (dateA < dateB) return subSortConfig.direction === 'asc' ? -1 : 1;
+                                      if (dateA > dateB) return subSortConfig.direction === 'asc' ? 1 : -1;
+                                      return 0;
+                                  }
 
-                                if (subSortConfig.key === 'deadline') {
-                                  const dateA = new Date(aVal as string).getTime();
-                                  const dateB = new Date(bVal as string).getTime();
-                                  if (dateA < dateB) return subSortConfig.direction === 'asc' ? -1 : 1;
-                                  if (dateA > dateB) return subSortConfig.direction === 'asc' ? 1 : -1;
+                                  if (aVal < bVal) return subSortConfig.direction === 'asc' ? -1 : 1;
+                                  if (aVal > bVal) return subSortConfig.direction === 'asc' ? 1 : -1;
                                   return 0;
-                                }
+                                });
 
-                                if (aVal < bVal) return subSortConfig.direction === 'asc' ? -1 : 1;
-                                if (aVal > bVal) return subSortConfig.direction === 'asc' ? 1 : -1;
-                                return 0;
-                              });
-
-                              return (
-                                <div className="px-4 py-2">
+                                return (
                                   <Table>
                                     <TableHeader>
-                                      <TableRow className="hover:bg-transparent border-b">
-                                        <TableHead className="h-auto py-3">College</TableHead>
-                                        <TableHead className="h-auto py-3">App Type</TableHead>
-                                        <TableHead className="h-auto py-3">
-                                          <Button variant="ghost" className="p-0 hover:bg-transparent font-semibold" onClick={() => requestSubSort('deadline')}>
+                                      <TableRow className="bg-transparent hover:bg-transparent border-b-0 h-10">
+                                        <TableHead className="font-semibold text-slate-700 pl-16">College</TableHead>
+                                        <TableHead className="font-semibold text-slate-700">App Type</TableHead>
+                                        <TableHead>
+                                          <Button variant="ghost" className="p-0 hover:bg-transparent font-semibold text-slate-700" onClick={() => requestSubSort('deadline')}>
                                             Deadline {getSubSortIcon('deadline')}
                                           </Button>
                                         </TableHead>
-                                        <TableHead className="h-auto py-3">
-                                          <Button variant="ghost" className="p-0 hover:bg-transparent font-semibold" onClick={() => requestSubSort('daysLeft')}>
-                                            Days left {getSubSortIcon('daysLeft')}
+                                        <TableHead>
+                                          <Button variant="ghost" className="p-0 hover:bg-transparent font-semibold text-slate-700" onClick={() => requestSubSort('daysLeft')}>
+                                            Days Left {getSubSortIcon('daysLeft')}
                                           </Button>
                                         </TableHead>
-                                        <TableHead className="h-auto py-3">Rec Required</TableHead>
+                                        <TableHead className="font-semibold text-slate-700">Rec. Required</TableHead>
+                                        <TableHead className="font-semibold text-slate-700">Rec. Status</TableHead>
                                       </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                       {sortedDetails.map((detail) => (
-                                        <TableRow key={detail.college} className="border-b last:border-b-0 hover:bg-transparent">
-                                          <TableCell className="py-3">{detail.college}</TableCell>
-                                          <TableCell className="py-3">{detail.appType}</TableCell>
-                                          <TableCell className="py-3">{detail.deadline}</TableCell>
-                                          <TableCell className={`${getDaysLeftColor(detail.daysLeft)} py-3`}>
-                                            {detail.daysLeft ?? "-"}
+                                        <TableRow key={detail.id} className="bg-transparent hover:bg-transparent border-b-0 h-10">
+                                          <TableCell className="pl-16">{detail.collegeName}</TableCell>
+                                          <TableCell>{detail.program}</TableCell>
+                                          <TableCell>
+                                            {new Date(detail.deadline).toLocaleDateString("en-US", {
+                                              month: "short",
+                                              day: "numeric",
+                                              year: "numeric",
+                                            })}
                                           </TableCell>
-                                          <TableCell className="py-3">
+                                          <TableCell className={`${getDaysLeftColor(detail.daysLeft)}`}>
+                                            {detail.daysLeft}
+                                          </TableCell>
+                                          <TableCell>
                                             {detail.recRequired ? (
-                                              <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                              <CheckCircle2 size={16} className="text-green-500" />
                                             ) : (
-                                              <span>-</span>
+                                              "-"
                                             )}
                                           </TableCell>
+                                          <TableCell>{detail.status}</TableCell>
                                         </TableRow>
                                       ))}
                                     </TableBody>
                                   </Table>
-                                </div>
-                              );
-                            })()
-                          ) : (
-                            <div className="text-center py-4 text-slate-500 h-[63px] flex items-center justify-center">No details available.</div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </React.Fragment>
-                ))}
+                                );
+                              })()
+                            ) : (
+                              <div className="text-center py-4 text-slate-500">
+                                No college applications for this student yet.
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </React.Fragment>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
