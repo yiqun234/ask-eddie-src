@@ -60,6 +60,21 @@ Note we're following the [design systems guide](https://tamagui.dev/docs/guides/
 
 See `packages/ui` named `@my/ui` for how this works.
 
+## Mock API
+
+This project includes a mock API for the RecTracker feature to allow for frontend development and testing without a live backend.
+
+-   **Location**: The API routes are defined within `apps/next/src/app/api/rec-tracker/`.
+-   **Data Persistence**: The data is stored **in-memory** on the server. This means all data, including any new or edited records, will be reset whenever the development server restarts.
+
+### Endpoints
+
+-   `GET /api/rec-tracker`: Retrieves the list of all student recommendation records.
+-   `POST /api/rec-tracker`: Creates a new student record.
+    -   **Body**: `{ "name": "string", "earliestDeadline": "string" }` (Date in ISO format, e.g., "YYYY-MM-DD")
+-   `PUT /api/rec-tracker/[id]`: Updates a specific student record by its ID.
+    -   **Body**: `{ "name": "string", "earliestDeadline": "string" }`
+
 ## 🆕 Add new dependencies
 
 ### Pure JS dependencies
