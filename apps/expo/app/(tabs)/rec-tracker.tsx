@@ -141,15 +141,15 @@ const mockStudents: StudentCardProps[] = [
 export default function RecTrackerScreen() {
   return (
     <>
-      <ScrollView>
+    <ScrollView>
         <YStack flex={1} p="$4" gap="$4" mt="$4">
-          {mockStudents
+        {mockStudents
             .filter((student) => !!student)
             .map((student) => (
-              <StudentCard key={student.name} {...student} />
-            ))}
-        </YStack>
-      </ScrollView>
+                <StudentCard key={student.name} {...student} />
+        ))}
+      </YStack>
+    </ScrollView>
     </>
   );
 } 

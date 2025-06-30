@@ -1,90 +1,61 @@
 import { NextResponse } from "next/server";
+import { mockStudents, calculateDaysLeft, type Student } from './data';
 
-// This data would typically come from a database.
-const studentsData = [
-  {
-    id: "1",
-    name: "Angela Zhao",
-    colleges: 4,
-    earliestDeadline: "2025-07-01",
-    status: "Finalized",
-    applications: [],
-  },
-  {
-    id: "2",
-    name: "Lisa Chen",
-    colleges: 3,
-    earliestDeadline: "2025-11-01",
-    status: "Not Started",
-    applications: [
-      {
-        id: "2-1",
-        collegeName: "Columbia University",
-        program: "ED",
-        deadline: "2025-11-01",
-        recRequired: true,
-        status: "Not Started",
-      },
-      {
-        id: "2-2",
-        collegeName: "NYU",
-        program: "RD",
-        deadline: "2026-01-05",
-        recRequired: true,
-        status: "Not Started",
-      },
-      {
-        id: "2-3",
-        collegeName: "UC Davis",
-        program: "RD",
-        deadline: "2025-11-30",
-        recRequired: false,
-        status: "Not Started",
-      },
-    ],
-  },
-  {
-    id: "3",
-    name: "Tom Wu",
-    colleges: 3,
-    earliestDeadline: "2025-11-15",
-    status: "In Progress",
-    applications: [],
-  },
-  {
-    id: "4",
-    name: "Noah Chen",
-    colleges: 2,
-    earliestDeadline: "2025-11-10",
-    status: "Not Started",
-    applications: [],
-  },
-];
+export type { Student, Application } from './data';
 
-export async function GET() {
-  // Simulate a network delay
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  
-  const dataWithDaysLeft = studentsData.map(student => {
-    const today = new Date();
-    const deadline = new Date(student.earliestDeadline);
-    const daysLeft = Math.ceil((deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+export async function GET(request: Request) {
+  // Simulate network delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const applicationsWithDaysLeft = student.applications.map(app => {
-        const appDeadline = new Date(app.deadline);
-        const appDaysLeft = Math.ceil((appDeadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        return {...app, daysLeft: appDaysLeft > 0 ? appDaysLeft : 0 };
-    });
+  const studentsWithDaysLeft = mockStudents.map(student => {
+    const earliestDeadline = student.applications.length > 0
+      ? student.applications.reduce((earliest, current) => 
+          new Date(current.deadline) < new Date(earliest.deadline) ? current : earliest
+        ).deadline
+      : student.earliestDeadline;
 
-    return { 
-        ...student, 
-        daysLeft: daysLeft > 0 ? daysLeft : 0,
-        applications: applicationsWithDaysLeft
+    const daysLeft = calculateDaysLeft(earliestDeadline);
+
+    const applicationsWithDaysLeft = student.applications.map(app => ({
+      ...app,
+      daysLeft: calculateDaysLeft(app.deadline),
+    }));
+    
+    return {
+      ...student,
+      earliestDeadline,
+      daysLeft,
+      colleges: student.applications.length,
+      applications: applicationsWithDaysLeft,
     };
   });
 
-  return NextResponse.json(dataWithDaysLeft);
+  return NextResponse.json(studentsWithDaysLeft);
 }
 
-export type Student = (typeof studentsData)[number] & { daysLeft: number, applications: Application[] };
-export type Application = typeof studentsData[1]['applications'][0] & { daysLeft: number }; 
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { name, earliestDeadline } = body;
+
+    if (!name || !earliestDeadline) {
+      return new NextResponse(JSON.stringify({ message: "Missing name or earliestDeadline" }), { status: 400 });
+    }
+
+    const newStudent: Student = {
+      id: (mockStudents.length + 1).toString(),
+      name,
+      earliestDeadline,
+      colleges: 0,
+      status: 'In Progress',
+      applications: [],
+      daysLeft: calculateDaysLeft(earliestDeadline),
+    };
+
+    mockStudents.push(newStudent);
+
+    return NextResponse.json(newStudent, { status: 201 });
+  } catch (error) {
+    return new NextResponse(JSON.stringify({ message: "Error processing request", error }), { status: 500 });
+  }
+} 

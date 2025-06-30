@@ -18,6 +18,7 @@ import {
   ArrowDown,
   CheckCircle2,
   Loader2,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import React from "react";
 import {
@@ -27,11 +28,175 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type { Student, Application } from "@/app/api/rec-tracker/route";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
 
 type SortableKey = keyof Omit<Student, "id" | "applications" | "status">;
 type SubSortableKey = keyof Omit<Application, "id" | "recRequired" | "program" | "collegeName" | "status">;
 
+const EditRecForm = ({ student, onSuccess, onCancel }: { student: Student; onSuccess: () => void; onCancel: () => void; }) => {
+  const [name, setName] = React.useState(student.name);
+  const [deadline, setDeadline] = React.useState<Date | undefined>(
+    student.earliestDeadline ? new Date(student.earliestDeadline) : undefined
+  );
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deadline) return;
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`/api/rec-tracker/${student.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, earliestDeadline: deadline.toISOString() }),
+      });
+      if (response.ok) {
+        onSuccess();
+      } else {
+        console.error("Failed to update recommendation");
+      }
+    } catch (error) {
+      console.error("An error occurred:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <DialogHeader>
+        <DialogTitle className="text-2xl font-bold">Edit Rec</DialogTitle>
+      </DialogHeader>
+      <div className="grid gap-4 py-4">
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="name" className="text-right">Student Name</Label>
+          <Input id="name" value={name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)} className="col-span-3" required />
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="deadline" className="text-right">Earliest Deadline</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "col-span-3 justify-start text-left font-normal",
+                  !deadline && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={deadline}
+                onSelect={setDeadline}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" disabled={isSubmitting || !name || !deadline}>
+          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Save Changes
+        </Button>
+      </div>
+    </form>
+  );
+};
+
+const NewRecForm = ({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void; }) => {
+  const [name, setName] = React.useState('');
+  const [deadline, setDeadline] = React.useState<Date>();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deadline) return;
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/rec-tracker', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, earliestDeadline: deadline.toISOString() }),
+      });
+
+      if (response.ok) {
+        onSuccess();
+      } else {
+        console.error("Failed to create new recommendation");
+        // Optionally: show an error message to the user
+      }
+    } catch (error) {
+      console.error("An error occurred:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <DialogHeader>
+        <DialogTitle className="text-2xl font-bold">New Rec - Start from Scratch</DialogTitle>
+      </DialogHeader>
+      <div className="grid gap-4 py-4">
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="name" className="text-right">
+            Student Name
+          </Label>
+          <Input id="name" value={name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)} className="col-span-3" required />
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="deadline" className="text-right">
+            Earliest Deadline
+          </Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "col-span-3 justify-start text-left font-normal",
+                  !deadline && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {deadline ? format(deadline, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={deadline}
+                onSelect={setDeadline}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" disabled={isSubmitting || !name || !deadline}>
+          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Create
+        </Button>
+      </div>
+    </form>
+  );
+};
 
 export default function RecTrackerPage() {
   const [students, setStudents] = React.useState<Student[]>([]);
@@ -39,24 +204,29 @@ export default function RecTrackerPage() {
   const [expandedRows, setExpandedRows] = React.useState<Record<string, boolean>>({});
   const [sortConfig, setSortConfig] = React.useState<{ key: SortableKey; direction: "asc" | "desc" } | null>(null);
   const [subSortConfig, setSubSortConfig] = React.useState<{ key: SubSortableKey; direction: "asc" | "desc"} | null>(null);
+  const [dialogState, setDialogState] = React.useState<{
+    view: 'closed' | 'initial' | 'new_form' | 'edit_form' | 'view_details';
+    student?: Student;
+  }>({ view: 'closed' });
+
+  const fetchData = React.useCallback(async () => {
+    try {
+      const response = await fetch('/api/rec-tracker');
+      const data = await response.json();
+      setStudents(data);
+    } catch (error) {
+      console.error("Failed to fetch students", error);
+    }
+  }, []);
 
   React.useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch('/api/rec-tracker');
-        const data = await response.json();
-        setStudents(data);
-      } catch (error) {
-        console.error("Failed to fetch students", error);
-        // Handle error state if needed
-      } finally {
+    const initialFetch = async () => {
+        setIsLoading(true);
+        await fetchData();
         setIsLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+    }
+    initialFetch();
+  }, [fetchData]);
 
   const toggleRow = (id: string) => {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -121,28 +291,74 @@ export default function RecTrackerPage() {
     return subSortConfig.direction === 'asc' ? <ArrowUp className="ml-2 h-4 w-4" /> : <ArrowDown className="ml-2 h-4 w-4" />;
   };
 
+  const handleDialogSuccess = () => {
+    fetchData();
+    setDialogState({ view: 'closed' });
+  }
+
+  const handleOpenNewDialog = () => setDialogState({ view: 'initial' });
+  const handleOpenEditDialog = (student: Student) => setDialogState({ view: 'edit_form', student });
+  const handleOpenViewDialog = (student: Student) => setDialogState({ view: 'view_details', student });
+
   return (
     <div className="bg-white rounded-lg shadow w-full h-full flex flex-col">
       <div className="p-8 flex items-center justify-between">
         <h1 className="text-4xl font-bold">RecTracker</h1>
-        <Dialog>
+        <Dialog open={dialogState.view !== 'closed'} onOpenChange={(open) => {
+          if (!open) {
+            setDialogState({ view: 'closed' });
+          }
+        }}>
           <DialogTrigger asChild>
-            <Button>New Rec</Button>
+            <Button onClick={handleOpenNewDialog}>New Rec</Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">New Rec</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <button className="flex items-center justify-between w-full p-4 border rounded-lg hover:bg-slate-50">
-                <span>Start from scratch</span>
-                <ChevronRight className="h-5 w-5 text-slate-400" />
-              </button>
-              <button className="flex items-center justify-between w-full p-4 border rounded-lg hover:bg-slate-50">
-                <span>Get help from AI assistant</span>
-                <ChevronRight className="h-5 w-5 text-slate-400" />
-              </button>
-            </div>
+          <DialogContent className="sm:max-w-[480px]">
+            {dialogState.view === 'initial' && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold">New Rec</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <button onClick={() => setDialogState({ view: 'new_form' })} className="flex items-center justify-between w-full p-4 border rounded-lg hover:bg-slate-50">
+                    <span>Start from scratch</span>
+                    <ChevronRight className="h-5 w-5 text-slate-400" />
+                  </button>
+                  <button className="flex items-center justify-between w-full p-4 border rounded-lg hover:bg-slate-50">
+                    <span>Get help from AI assistant</span>
+                    <ChevronRight className="h-5 w-5 text-slate-400" />
+                  </button>
+                </div>
+              </>
+            )}
+            {dialogState.view === 'new_form' && (
+              <NewRecForm 
+                onSuccess={handleDialogSuccess} 
+                onCancel={() => setDialogState({ view: 'initial' })}
+              />
+            )}
+            {dialogState.view === 'edit_form' && dialogState.student && (
+              <EditRecForm 
+                student={dialogState.student}
+                onSuccess={handleDialogSuccess} 
+                onCancel={() => setDialogState({ view: 'closed' })}
+              />
+            )}
+             {dialogState.view === 'view_details' && dialogState.student && (
+                <>
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-bold">{dialogState.student.name}</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4 text-sm">
+                        <p><strong># of Colleges:</strong> {dialogState.student.colleges}</p>
+                        <p><strong>Earliest Deadline:</strong> {new Date(dialogState.student.earliestDeadline).toLocaleDateString()}</p>
+                        <p><strong>Days Left:</strong> {dialogState.student.daysLeft ?? '-'}</p>
+                        <p><strong>Letter Status:</strong> {dialogState.student.status}</p>
+                    </div>
+                    <div className="flex justify-end">
+                        <Button onClick={() => setDialogState({ view: 'closed' })}>Close</Button>
+                    </div>
+                </>
+            )}
           </DialogContent>
         </Dialog>
       </div>
@@ -210,7 +426,7 @@ export default function RecTrackerPage() {
                         </TableCell>
                         <TableCell className="px-3">{student.status}</TableCell>
                         <TableCell className="px-3">
-                          <Button variant="ghost" size="icon">
+                          <Button variant="ghost" size="icon" onClick={() => student.status === 'Finalized' ? handleOpenViewDialog(student) : handleOpenEditDialog(student)}>
                             {student.status === "Finalized" ? <Eye size={16} /> : <Edit size={16} />}
                           </Button>
                         </TableCell>
@@ -234,6 +450,8 @@ export default function RecTrackerPage() {
                                       return 0;
                                   }
 
+                                  if (aVal === null) return 1;
+                                  if (bVal === null) return -1;
                                   if (aVal < bVal) return subSortConfig.direction === 'asc' ? -1 : 1;
                                   if (aVal > bVal) return subSortConfig.direction === 'asc' ? 1 : -1;
                                   return 0;
