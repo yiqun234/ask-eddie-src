@@ -50,18 +50,19 @@ test('Next.js build completes', async () => {
     expect(result).toContain('Creating an optimized production build')
 
     // Check for route information
-    expect(result).toContain('Route (app)')
-    expect(result).toContain('First Load JS shared by all')
+    expect(result.replace(/\s+/g, ' ')).toContain('Route (app)')
+    expect(result.replace(/\s+/g, ' ')).toContain('First Load JS shared by all')
 
     // Check for specific route patterns
-    expect(result).toContain('○ /')
-    expect(result).toContain('○ /_not-found')
+    expect(result.replace(/\s+/g, ' ')).toContain('○ /')
+    expect(result.replace(/\s+/g, ' ')).toContain('○ /_not-found')
     
     // Check for chunk summary
-    expect(result).toContain('First Load JS shared by all')
+    expect(result.replace(/\s+/g, ' ')).toContain('First Load JS shared by all')
 
     // Check for static route indicator
-    expect(result).toContain('○  (Static)  prerendered as static content')
+    expect(result.replace(/\s+/g, ' ')).toContain('○ (Static) prerendered as static content')
+
   } finally {
     // The process kill check has been moved to the afterAll block
   }
